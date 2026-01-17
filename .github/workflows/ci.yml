@@ -3,9 +3,6 @@ name: CI
 on:
   push:
     branches: [ master ]
-    branches-ignore:
-      - dependabot/*
-  pull_request:
   workflow_dispatch:
     inputs:
       version:
