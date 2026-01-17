@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Build.targets" />
+    <File Path="Directory.Packages.Props" />
+    <File Path="global.json" />
+    <File Path="nuget.config" />
+  </Folder>
+  <Project Path="example/example.csproj" />
+  <Project Path="minijinja/minijinja.csproj" />
+  <Project Path="tests/tests.csproj" />
+</Solution>
