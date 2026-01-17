@@ -42,11 +42,12 @@ jobs:
         run: dotnet test --no-build --no-restore
 
       - name: Pack NuGet packages
+        if: ${{ github.event.inputs.version != '' }}
         id: pack
         run: dotnet pack minijinja/minijinja.csproj -c Release -o artifacts /p:PackageVersion=${{ env.PACKAGE_VERSION }} /p:Version=${{ env.PACKAGE_VERSION }}
 
       - uses: actions/upload-artifact@v4
-        if: ${{ matrix.os == 'windows-latest' }}
+        if: ${{ github.event.inputs.version != '' && matrix.os == 'windows-latest' }}
         with:
           name: packages
           path: artifacts/
