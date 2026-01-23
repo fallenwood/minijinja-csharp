@@ -205,6 +205,52 @@ Section("Property Attributes and Naming Strategies"); {
   Console.WriteLine(tmpl3.Render(credentials));
 }
 
+Section("JSON Serialization with Special Characters in Keys"); {
+  using var env = new MJEnvironment();
+
+  // Create a dictionary with keys containing special characters
+  var data = new Dictionary<string, Value> {
+    ["normal_key"] = Value.FromString("value1"),
+    ["key\"with\"quotes"] = Value.FromString("value2"),
+    ["key\\with\\backslashes"] = Value.FromString("value3"),
+    ["key\nwith\nnewlines"] = Value.FromString("value4"),
+    ["key\twith\ttabs"] = Value.FromString("value5"),
+    ["key\u0001with\u001fcontrol"] = Value.FromString("value6")
+  };
+
+  var value = Value.FromDict(data);
+  var json = value.ToJson(false);
+  Console.WriteLine("Compact JSON:");
+  Console.WriteLine(json);
+  Console.WriteLine();
+  Console.WriteLine("Pretty JSON:");
+  Console.WriteLine(value.ToJson(true));
+
+  // Verify the JSON is valid by checking it can be parsed
+  try {
+    System.Text.Json.JsonDocument.Parse(json);
+    Console.WriteLine("✓ JSON is valid");
+  } catch {
+    Console.WriteLine("✗ JSON is invalid!");
+  }
+}
+
+// Removed collision test to allow build to succeed.
+// To test collision detection, create a class like:
+// [MiniJinjaContext]
+// partial class TestCollision {
+//   public int UserId { get; set; }
+//   public int userId { get; set; }
+// }
+// This will generate warning MINIJINJA001
+
+// To test missing partial modifier detection:
+// [MiniJinjaContext]
+// class NonPartialTest {  // Missing 'partial' keyword
+//   public string Name { get; set; } = "";
+// }
+// This will generate error MINIJINJA002
+
 // Example of a custom type that implements ITemplateSerializable for AOT compatibility
 class Person : ITemplateSerializable {
   public string Name { get; set; } = "";

@@ -452,8 +452,27 @@ public readonly struct Value : IEquatable<Value> {
             sb.Append('\n');
             sb.Append(' ', (indent + 1) * 2);
           }
+          // Escape the key to ensure valid JSON - keys may contain quotes, backslashes,
+          // control characters, etc. that must be escaped just like string values
           sb.Append('"');
-          sb.Append(kv.Key);
+          foreach (var c in kv.Key) {
+            switch (c) {
+              case '"': sb.Append("\\\""); break;
+              case '\\': sb.Append("\\\\"); break;
+              case '\b': sb.Append("\\b"); break;
+              case '\f': sb.Append("\\f"); break;
+              case '\n': sb.Append("\\n"); break;
+              case '\r': sb.Append("\\r"); break;
+              case '\t': sb.Append("\\t"); break;
+              default:
+                if (c < 32) {
+                  sb.Append($"\\u{(int)c:x4}");
+                } else {
+                  sb.Append(c);
+                }
+                break;
+            }
+          }
           sb.Append('"');
           sb.Append(':');
           if (pretty) sb.Append(' ');

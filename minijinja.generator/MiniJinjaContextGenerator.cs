@@ -7,6 +7,14 @@ using System.Text;
 
 namespace MiniJinja.SourceGenerator;
 
+/// <summary>
+/// Source generator for MiniJinja context types.
+/// Automatically implements ITemplateSerializable for types marked with [MiniJinjaContext].
+///
+/// Diagnostics:
+/// - MINIJINJA001 (Warning): Property name collision after applying naming strategy
+/// - MINIJINJA002 (Error): Type with [MiniJinjaContext] must be partial
+/// </summary>
 [Generator]
 public class MiniJinjaContextGenerator : IIncrementalGenerator {
   public void Initialize(IncrementalGeneratorInitializationContext context) {
@@ -56,6 +64,24 @@ public class MiniJinjaContextGenerator : IIncrementalGenerator {
 
   private static void Execute((INamedTypeSymbol Symbol, TypeDeclarationSyntax Syntax) typeInfo, SourceProductionContext context) {
     var typeSymbol = typeInfo.Symbol;
+    var typeSyntax = typeInfo.Syntax;
+
+    // Check if the type is declared as partial
+    var isPartial = typeSyntax.Modifiers.Any(m => m.IsKind(SyntaxKind.PartialKeyword));
+    if (!isPartial) {
+      var descriptor = new DiagnosticDescriptor(
+        id: "MINIJINJA002",
+        title: "Type with [MiniJinjaContext] must be partial",
+        messageFormat: "The type '{0}' is marked with [MiniJinjaContext] but is not declared as partial. Add the 'partial' modifier to the type declaration.",
+        category: "MiniJinja.Generator",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+      var location = typeSyntax.Identifier.GetLocation();
+      var diagnostic = Diagnostic.Create(descriptor, location, typeSymbol.Name);
+      context.ReportDiagnostic(diagnostic);
+      return; // Don't generate code if the type isn't partial
+    }
 
     // Get the MiniJinjaContext attribute to read naming strategy
     var contextAttribute = typeSymbol.GetAttributes()
@@ -80,6 +106,59 @@ public class MiniJinjaContextGenerator : IIncrementalGenerator {
 
     if (properties.Count == 0) {
       return;
+    }
+
+    // Check for property name collisions after applying naming strategy
+    var propertyKeyMap = new Dictionary<string, List<string>>();
+
+    foreach (var property in properties) {
+      // Check for MiniJinjaProperty attribute
+      var propertyAttribute = property.GetAttributes()
+        .FirstOrDefault(a => a.AttributeClass?.ToDisplayString() == "MiniJinja.MiniJinjaPropertyAttribute");
+
+      // Check if property should be ignored
+      var ignore = false;
+      string? customName = null;
+
+      if (propertyAttribute is not null) {
+        foreach (var namedArg in propertyAttribute.NamedArguments) {
+          if (namedArg.Key == "Ignore" && namedArg.Value.Value is bool ignoreValue) {
+            ignore = ignoreValue;
+          } else if (namedArg.Key == "Name" && namedArg.Value.Value is string nameValue) {
+            customName = nameValue;
+          }
+        }
+      }
+
+      if (ignore) {
+        continue;
+      }
+
+      var propertyName = property.Name;
+      var keyName = customName ?? ConvertPropertyName(propertyName, namingStrategy);
+
+      if (!propertyKeyMap.ContainsKey(keyName)) {
+        propertyKeyMap[keyName] = new List<string>();
+      }
+      propertyKeyMap[keyName].Add(propertyName);
+    }
+
+    // Report diagnostics for any collisions
+    foreach (var kvp in propertyKeyMap.Where(kvp => kvp.Value.Count > 1)) {
+      var keyName = kvp.Key;
+      var propertyNames = kvp.Value;
+
+      var descriptor = new DiagnosticDescriptor(
+        id: "MINIJINJA001",
+        title: "Property name collision after applying naming strategy",
+        messageFormat: "Properties {0} all map to the same key '{1}' after applying the naming strategy. This will cause the last property to overwrite previous ones. Consider using [MiniJinjaProperty(Name = \"...\")] to provide unique names.",
+        category: "MiniJinja.Generator",
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
+
+      var location = typeInfo.Syntax.GetLocation();
+      var diagnostic = Diagnostic.Create(descriptor, location, string.Join(", ", propertyNames.Select(p => $"'{p}'")), keyName);
+      context.ReportDiagnostic(diagnostic);
     }
 
     var namespaceName = typeSymbol.ContainingNamespace.IsGlobalNamespace
