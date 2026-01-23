@@ -17,14 +17,22 @@ Section("Quick Start"); {
   using var env = new MJEnvironment();
   env.AddTemplate("hello", "Hello {{ name }}!");
   var tmpl = env.GetTemplate("hello");
-  var result = tmpl.Render(new { name = "World" });
+  // Using dictionary for context (AOT-compatible)
+  var result = tmpl.Render(new Dictionary<string, object?> { ["name"] = "World" });
   Console.WriteLine(result);
 }
 
 Section("Template From String"); {
   using var env = new MJEnvironment();
   var tmpl = env.TemplateFromString("Hello {{ name }}!");
-  Console.WriteLine(tmpl.Render(new { name = "World" }));
+  Console.WriteLine(tmpl.Render(new Dictionary<string, object?> { ["name"] = "World" }));
+}
+
+Section("Custom Type with ITemplateSerializable"); {
+  using var env = new MJEnvironment();
+  var tmpl = env.TemplateFromString("{{ name }} is {{ age }} years old");
+  var person = new Person { Name = "Alice", Age = 30 };
+  Console.WriteLine(tmpl.Render(person));
 }
 
 Section("Template Syntax (Variables, Blocks, Filters)"); {
@@ -46,7 +54,10 @@ Section("Template Syntax (Variables, Blocks, Filters)"); {
   );
 
   var tmpl = env.GetTemplate("syntax");
-  var output = tmpl.Render(new { name = "world", items = new[] { "a", "b", "c" } });
+  var output = tmpl.Render(new Dictionary<string, object?> {
+    ["name"] = "world",
+    ["items"] = new[] { "a", "b", "c" }
+  });
   Console.WriteLine(output.Trim());
 }
 
@@ -62,7 +73,7 @@ Section("Custom Filter (reverse)"); {
 
   env.AddTemplate("reverse-demo", "{{ value|reverse }}");
   var tmpl = env.GetTemplate("reverse-demo");
-  Console.WriteLine(tmpl.Render(new { value = "hello" }));
+  Console.WriteLine(tmpl.Render(new Dictionary<string, object?> { ["value"] = "hello" }));
 }
 
 Section("Custom Function (repeat)"); {
@@ -77,7 +88,7 @@ Section("Custom Function (repeat)"); {
 
   env.AddTemplate("repeat-demo", "{{ repeat(word, 3) }}");
   var tmpl = env.GetTemplate("repeat-demo");
-  Console.WriteLine(tmpl.Render(new { word = "ha" }));
+  Console.WriteLine(tmpl.Render(new Dictionary<string, object?> { ["word"] = "ha" }));
 }
 
 Section("Built-in Function (range)"); {
@@ -121,5 +132,18 @@ Section("Error Handling"); {
     env.AddTemplate("bad", "Hello {% if %}");
   } catch (TemplateError e) {
     Console.WriteLine($"TemplateError: {e.Message}");
+  }
+}
+
+// Example of a custom type that implements ITemplateSerializable for AOT compatibility
+class Person : ITemplateSerializable {
+  public string Name { get; set; } = "";
+  public int Age { get; set; }
+
+  public Dictionary<string, Value> ToTemplateValues() {
+    return new Dictionary<string, Value> {
+      ["name"] = Value.FromString(Name),
+      ["age"] = Value.FromInt(Age)
+    };
   }
 }

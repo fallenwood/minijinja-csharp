@@ -479,7 +479,7 @@ public class Evaluator(State state) {
       ConditionalExpr cond => this.EvaluateConditional(cond),
       ListExpr list => this.EvaluateList(list),
       DictExpr dict => this.EvaluateDict(dict),
-      _ => throw new TemplateError($"Unknown expression type: {expr.GetType().Name}")
+      _ => throw new TemplateError("Unknown expression type")
     };
   }
 

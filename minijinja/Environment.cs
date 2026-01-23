@@ -253,17 +253,10 @@ public class Template {
       return new Dictionary<string, Value>(valueDict);
     }
 
-    // Use reflection for anonymous types or regular objects
-    var type = context.GetType();
-    foreach (var prop in type.GetProperties()) {
-      try {
-        var value = prop.GetValue(context);
-        result[prop.Name] = Value.FromAny(value);
-      } catch {
-        // Skip properties that can't be read
-      }
+    if (context is ITemplateSerializable serializable) {
+      return serializable.ToTemplateValues();
     }
 
-    return result;
+    throw new TemplateError($"Context type {context.GetType().Name} must implement ITemplateSerializable, be a dictionary, or be a supported primitive type. For anonymous types, convert to a dictionary first.");
   }
 }
