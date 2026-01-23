@@ -16,11 +16,63 @@ public interface ITemplateSerializable {
 }
 
 /// <summary>
+/// Specifies how property names are converted to template keys.
+/// </summary>
+public enum KeyNamingStrategy {
+  /// <summary>
+  /// Convert PascalCase to camelCase (default).
+  /// Example: FirstName -> firstName
+  /// </summary>
+  CamelCase,
+
+  /// <summary>
+  /// Convert PascalCase to snake_case.
+  /// Example: FirstName -> first_name
+  /// </summary>
+  SnakeCase,
+
+  /// <summary>
+  /// Convert PascalCase to kebab-case.
+  /// Example: FirstName -> first-name
+  /// </summary>
+  KebabCase,
+
+  /// <summary>
+  /// Keep the original property name as-is.
+  /// Example: FirstName -> FirstName
+  /// </summary>
+  None
+}
+
+/// <summary>
 /// Marks a type to have its ITemplateSerializable.ToTemplateValues() method generated automatically.
 /// The type must be declared as partial for the source generator to work.
 /// </summary>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, Inherited = false, AllowMultiple = false)]
 public sealed class MiniJinjaContextAttribute : Attribute {
+  /// <summary>
+  /// Gets or sets the naming strategy for converting property names to template keys.
+  /// Default is CamelCase.
+  /// </summary>
+  public KeyNamingStrategy KeyNamingStrategy { get; set; } = KeyNamingStrategy.CamelCase;
+}
+
+/// <summary>
+/// Marks a property to be included in template serialization with optional customization.
+/// </summary>
+[AttributeUsage(AttributeTargets.Property, Inherited = false, AllowMultiple = false)]
+public sealed class MiniJinjaPropertyAttribute : Attribute {
+  /// <summary>
+  /// Gets or sets the custom name for this property in templates.
+  /// If not set, the naming strategy from MiniJinjaContextAttribute is used.
+  /// </summary>
+  public string? Name { get; set; }
+
+  /// <summary>
+  /// Gets or sets whether to ignore this property during serialization.
+  /// Default is false.
+  /// </summary>
+  public bool Ignore { get; set; }
 }
 
 /// <summary>
