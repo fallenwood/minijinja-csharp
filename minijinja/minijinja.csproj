@@ -13,8 +13,16 @@
 
   <ItemGroup>
       <ProjectReference Include="..\minijinja.generator\MiniJinja.SourceGenerator.csproj"
-        OutputItemType="Analyzer"
+        PrivateAssets="None"
+        Pack="true"
         ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\minijinja.generator\bin\$(Configuration)\netstandard2.0\MiniJinja.SourceGenerator.dll"
+      Pack="true"
+      PackagePath="analyzers/dotnet/cs"
+      Visible="false" />
   </ItemGroup>
 
   <ItemGroup>
