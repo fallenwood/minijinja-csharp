@@ -11,7 +11,7 @@ public class TestsTests {
     var tmpl = env.TemplateFromString("{{ x is defined }}");
 
     // Act
-    var result = tmpl.Render(new { x = 1 });
+    var result = tmpl.Render(new Dictionary<string, object?> { ["x"] = 1 });
 
     // Assert
     result.Should().Be("true");
@@ -24,7 +24,7 @@ public class TestsTests {
     var tmpl = env.TemplateFromString("{{ y is defined }}");
 
     // Act
-    var result = tmpl.Render(new { x = 1 });
+    var result = tmpl.Render(new Dictionary<string, object?> { ["x"] = 1 });
 
     // Assert
     result.Should().Be("false");

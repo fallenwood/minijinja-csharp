@@ -24,7 +24,7 @@ public class CallableObjectTests {
     var tmpl = env.TemplateFromString(@"{% set j = joiner("", "") %}{% for item in items %}{{ j() }}{{ item }}{% endfor %}");
 
     // Act
-    var result = tmpl.Render(new { items = new[] { "a", "b", "c" } });
+    var result = tmpl.Render(new Dictionary<string, object?> { ["items"] = new[] { "a", "b", "c" } });
 
     // Assert
     result.Should().Be("a, b, c");

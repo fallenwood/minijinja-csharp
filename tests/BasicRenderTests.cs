@@ -11,7 +11,7 @@ public class BasicRenderTests {
     var tmpl = env.TemplateFromString("Hello {{ name }}!");
 
     // Act
-    var result = tmpl.Render(new { name = "World" });
+    var result = tmpl.Render(new Dictionary<string, object?> { ["name"] = "World" });
 
     // Assert
     result.Should().Be("Hello World!");
@@ -24,11 +24,11 @@ public class BasicRenderTests {
     var tmpl = env.TemplateFromString("{{ str }} {{ num }} {{ floatVal }} {{ boolVal }}");
 
     // Act
-    var result = tmpl.Render(new {
-      str = "hello",
-      num = 42,
-      floatVal = 3.14,
-      boolVal = true
+    var result = tmpl.Render(new Dictionary<string, object?> {
+      ["str"] = "hello",
+      ["num"] = 42,
+      ["floatVal"] = 3.14,
+      ["boolVal"] = true
     });
 
     // Assert

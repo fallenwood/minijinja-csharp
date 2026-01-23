@@ -11,7 +11,7 @@ public class IfConditionTests {
     var tmpl = env.TemplateFromString("{% if show %}visible{% endif %}");
 
     // Act
-    var result = tmpl.Render(new { show = true });
+    var result = tmpl.Render(new Dictionary<string, object?> { ["show"] = true });
 
     // Assert
     result.Should().Be("visible");
@@ -24,7 +24,7 @@ public class IfConditionTests {
     var tmpl = env.TemplateFromString("{% if show %}visible{% endif %}");
 
     // Act
-    var result = tmpl.Render(new { show = false });
+    var result = tmpl.Render(new Dictionary<string, object?> { ["show"] = false });
 
     // Assert
     result.Should().BeEmpty();
@@ -37,7 +37,7 @@ public class IfConditionTests {
     var tmpl = env.TemplateFromString("{% if show %}yes{% else %}no{% endif %}");
 
     // Act
-    var result = tmpl.Render(new { show = true });
+    var result = tmpl.Render(new Dictionary<string, object?> { ["show"] = true });
 
     // Assert
     result.Should().Be("yes");
@@ -50,7 +50,7 @@ public class IfConditionTests {
     var tmpl = env.TemplateFromString("{% if show %}yes{% else %}no{% endif %}");
 
     // Act
-    var result = tmpl.Render(new { show = false });
+    var result = tmpl.Render(new Dictionary<string, object?> { ["show"] = false });
 
     // Assert
     result.Should().Be("no");
@@ -66,7 +66,7 @@ public class IfConditionTests {
     var tmpl = env.TemplateFromString("{% if x == 1 %}one{% elif x == 2 %}two{% else %}other{% endif %}");
 
     // Act
-    var result = tmpl.Render(new { x });
+    var result = tmpl.Render(new Dictionary<string, object?> { ["x"] = x });
 
     // Assert
     result.Should().Be(expected);

@@ -13,7 +13,7 @@ public class UrlencodeFilterTests {
     var tmpl = env.TemplateFromString("{{ value|urlencode }}");
 
     // Act
-    var result = tmpl.Render(new { value });
+    var result = tmpl.Render(new Dictionary<string, object?> { ["value"] = value });
 
     // Assert
     result.Should().Be(expected);

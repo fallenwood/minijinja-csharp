@@ -55,7 +55,7 @@ public class TemplateInheritanceTests {
     var tmpl = env.TemplateFromString(@"{% extends ""base.html"" %}{% block name %}{{ name }}{% endblock %}");
 
     // Act
-    var result = tmpl.Render(new { name = "Alice" });
+    var result = tmpl.Render(new Dictionary<string, object?> { ["name"] = "Alice" });
 
     // Assert
     result.Should().Be("Hello Alice!");

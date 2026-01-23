@@ -11,7 +11,7 @@ public class ForLoopTests {
     var tmpl = env.TemplateFromString("{% for item in items %}{{ item }}{% endfor %}");
 
     // Act
-    var result = tmpl.Render(new { items = new[] { "a", "b", "c" } });
+    var result = tmpl.Render(new Dictionary<string, object?> { ["items"] = new[] { "a", "b", "c" } });
 
     // Assert
     result.Should().Be("abc");
@@ -24,7 +24,7 @@ public class ForLoopTests {
     var tmpl = env.TemplateFromString("{% for item in items %}{{ loop.index }}:{{ item }} {% endfor %}");
 
     // Act
-    var result = tmpl.Render(new { items = new[] { "a", "b", "c" } });
+    var result = tmpl.Render(new Dictionary<string, object?> { ["items"] = new[] { "a", "b", "c" } });
 
     // Assert
     result.Should().Be("1:a 2:b 3:c ");
@@ -37,7 +37,7 @@ public class ForLoopTests {
     var tmpl = env.TemplateFromString("{% for item in items %}{{ item }}{% else %}empty{% endfor %}");
 
     // Act
-    var result = tmpl.Render(new { items = Array.Empty<string>() });
+    var result = tmpl.Render(new Dictionary<string, object?> { ["items"] = Array.Empty<string>() });
 
     // Assert
     result.Should().Be("empty");
@@ -50,7 +50,7 @@ public class ForLoopTests {
     var tmpl = env.TemplateFromString("{% for row in rows %}{% for col in row %}{{ col }}{% endfor %},{% endfor %}");
 
     // Act
-    var result = tmpl.Render(new { rows = new[] { new[] { 1, 2 }, new[] { 3, 4 } } });
+    var result = tmpl.Render(new Dictionary<string, object?> { ["rows"] = new[] { new[] { 1, 2 }, new[] { 3, 4 } } });
 
     // Assert
     result.Should().Be("12,34,");
@@ -63,7 +63,7 @@ public class ForLoopTests {
     var tmpl = env.TemplateFromString("{% for x in items if x > 2 %}{{ x }}{% endfor %}");
 
     // Act
-    var result = tmpl.Render(new { items = new[] { 1, 2, 3, 4, 5 } });
+    var result = tmpl.Render(new Dictionary<string, object?> { ["items"] = new[] { 1, 2, 3, 4, 5 } });
 
     // Assert
     result.Should().Be("345");

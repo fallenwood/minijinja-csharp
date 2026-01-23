@@ -11,7 +11,7 @@ public class HtmlEscapingTests {
     var tmpl = env.TemplateFromNamedString("test.html", "{{ content }}");
 
     // Act
-    var result = tmpl.Render(new { content = "<script>alert('xss')</script>" });
+    var result = tmpl.Render(new Dictionary<string, object?> { ["content"] = "<script>alert('xss')</script>" });
 
     // Assert
     result.Should().Contain("&lt;");
@@ -24,7 +24,7 @@ public class HtmlEscapingTests {
     var tmpl = env.TemplateFromNamedString("test.html", "{{ content|safe }}");
 
     // Act
-    var result = tmpl.Render(new { content = "<b>bold</b>" });
+    var result = tmpl.Render(new Dictionary<string, object?> { ["content"] = "<b>bold</b>" });
 
     // Assert
     result.Should().Be("<b>bold</b>");

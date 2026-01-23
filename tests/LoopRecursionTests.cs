@@ -25,7 +25,7 @@ public class LoopRecursionTests {
     };
 
     // Act
-    var result = tmpl.Render(new { items });
+    var result = tmpl.Render(new Dictionary<string, object?> { ["items"] = items });
 
     // Assert
     result.Should().Be("A(A1A2)B");

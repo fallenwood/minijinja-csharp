@@ -12,7 +12,7 @@ public class IncludeTests {
     var tmpl = env.TemplateFromString(@"{% include ""header.html"" %}");
 
     // Act
-    var result = tmpl.Render(new { title = "Welcome" });
+    var result = tmpl.Render(new Dictionary<string, object?> { ["title"] = "Welcome" });
 
     // Assert
     result.Should().Be("Header: Welcome");
