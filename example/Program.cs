@@ -35,6 +35,13 @@ Section("Custom Type with ITemplateSerializable"); {
   Console.WriteLine(tmpl.Render(person));
 }
 
+Section("Custom Type with Source Generator"); {
+  using var env = new MJEnvironment();
+  var tmpl = env.TemplateFromString("{{ name }} is {{ age }} years old and lives in {{ city }}");
+  var employee = new Employee { Name = "Bob", Age = 25, City = "Seattle" };
+  Console.WriteLine(tmpl.Render(employee));
+}
+
 Section("Template Syntax (Variables, Blocks, Filters)"); {
   using var env = new MJEnvironment();
   env.AddTemplate(
@@ -146,4 +153,13 @@ class Person : ITemplateSerializable {
       ["age"] = Value.FromInt(Age)
     };
   }
+}
+
+// Example of using the source generator - just mark the class with [GenerateTemplateSerializable]
+// and make it partial. The ToTemplateValues method will be generated automatically.
+[GenerateTemplateSerializable]
+partial class Employee {
+  public string Name { get; set; } = "";
+  public int Age { get; set; }
+  public string City { get; set; } = "";
 }
