@@ -9,5 +9,6 @@
   </Folder>
   <Project Path="example/example.csproj" />
   <Project Path="minijinja/minijinja.csproj" />
+  <Project Path="minijinja.generator/MiniJinja.SourceGenerator.csproj" />
   <Project Path="tests/tests.csproj" />
 </Solution>

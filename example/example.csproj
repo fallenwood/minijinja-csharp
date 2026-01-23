@@ -7,9 +7,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\minijinja\minijinja.csproj" />
-    <ProjectReference Include="..\minijinja.generator\MiniJinja.SourceGenerator.csproj"
-                      OutputItemType="Analyzer"
-                      ReferenceOutputAssembly="false" />
   </ItemGroup>
 
 </Project>
