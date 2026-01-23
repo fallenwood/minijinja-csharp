@@ -8,23 +8,9 @@ using System.Text;
 namespace MiniJinja.SourceGenerator;
 
 [Generator]
-public class TemplateSerializableGenerator : IIncrementalGenerator {
+public class MiniJinjaContextGenerator : IIncrementalGenerator {
   public void Initialize(IncrementalGeneratorInitializationContext context) {
-    // Register a marker attribute that users can apply to their classes
-    context.RegisterPostInitializationOutput(ctx => ctx.AddSource(
-      "GenerateTemplateSerializableAttribute.g.cs",
-      """
-      namespace MiniJinja {
-        /// <summary>
-        /// Marks a type to have its ITemplateSerializable.ToTemplateValues() method generated automatically.
-        /// </summary>
-        [System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Struct, Inherited = false, AllowMultiple = false)]
-        public sealed class GenerateTemplateSerializableAttribute : System.Attribute {
-        }
-      }
-      """));
-
-    // Find all types marked with [GenerateTemplateSerializable]
+    // Find all types marked with [MiniJinjaContext]
     var classDeclarations = context.SyntaxProvider
       .CreateSyntaxProvider(
         predicate: static (s, _) => IsSyntaxTargetForGeneration(s),
@@ -52,7 +38,7 @@ public class TemplateSerializableGenerator : IIncrementalGenerator {
         var attributeType = attributeSymbol.ContainingType;
         var fullName = attributeType.ToDisplayString();
 
-        if (fullName == "MiniJinja.GenerateTemplateSerializableAttribute") {
+        if (fullName == "MiniJinja.MiniJinjaContextAttribute") {
           var typeSymbol = context.SemanticModel.GetDeclaredSymbol(typeDeclaration) as INamedTypeSymbol;
           if (typeSymbol is not null) {
             return (typeSymbol, typeDeclaration);

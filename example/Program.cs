@@ -125,6 +125,43 @@ Section("Auto-Escaping and Safe Strings"); {
   Console.WriteLine(tmpl.Render(ctx));
 }
 
+Section("Complex Object with Nested Data"); {
+  using var env = new MJEnvironment();
+  var tmpl = env.TemplateFromString("""
+    Company: {{ name }}
+    Departments:
+    {% for dept in departments %}
+      - {{ dept.name }} ({{ dept.employees|length }} employees)
+        {% for emp in dept.employees %}
+        * {{ emp.name }}, {{ emp.role }}{% if emp.isManager %} (Manager){% endif %}
+        {% endfor %}
+    {% endfor %}
+    """);
+
+  var company = new Company {
+    Name = "Tech Corp",
+    Departments = new[] {
+      new Department {
+        Name = "Engineering",
+        Employees = new[] {
+          new EmployeeInfo { Name = "Alice", Role = "Senior Engineer", IsManager = true },
+          new EmployeeInfo { Name = "Bob", Role = "Engineer", IsManager = false },
+          new EmployeeInfo { Name = "Carol", Role = "Junior Engineer", IsManager = false }
+        }
+      },
+      new Department {
+        Name = "Sales",
+        Employees = new[] {
+          new EmployeeInfo { Name = "Dave", Role = "Sales Lead", IsManager = true },
+          new EmployeeInfo { Name = "Eve", Role = "Account Manager", IsManager = false }
+        }
+      }
+    }
+  };
+
+  Console.WriteLine(tmpl.Render(company).Trim());
+}
+
 Section("Error Handling"); {
   using var env = new MJEnvironment();
   try {
@@ -155,11 +192,31 @@ class Person : ITemplateSerializable {
   }
 }
 
-// Example of using the source generator - just mark the class with [GenerateTemplateSerializable]
+// Example of using the source generator - just mark the class with [MiniJinjaContext]
 // and make it partial. The ToTemplateValues method will be generated automatically.
-[GenerateTemplateSerializable]
+[MiniJinjaContext]
 partial class Employee {
   public string Name { get; set; } = "";
   public int Age { get; set; }
   public string City { get; set; } = "";
+}
+
+// Complex nested object example with collections
+[MiniJinjaContext]
+partial class Company {
+  public string Name { get; set; } = "";
+  public Department[] Departments { get; set; } = Array.Empty<Department>();
+}
+
+[MiniJinjaContext]
+partial class Department {
+  public string Name { get; set; } = "";
+  public EmployeeInfo[] Employees { get; set; } = Array.Empty<EmployeeInfo>();
+}
+
+[MiniJinjaContext]
+partial class EmployeeInfo {
+  public string Name { get; set; } = "";
+  public string Role { get; set; } = "";
+  public bool IsManager { get; set; }
 }

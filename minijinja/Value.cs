@@ -16,6 +16,14 @@ public interface ITemplateSerializable {
 }
 
 /// <summary>
+/// Marks a type to have its ITemplateSerializable.ToTemplateValues() method generated automatically.
+/// The type must be declared as partial for the source generator to work.
+/// </summary>
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, Inherited = false, AllowMultiple = false)]
+public sealed class MiniJinjaContextAttribute : Attribute {
+}
+
+/// <summary>
 /// The kind of a Value.
 /// </summary>
 public enum ValueKind {
