@@ -63,8 +63,8 @@ public class MiniJinjaContextGenerator : IIncrementalGenerator {
 
     var namingStrategy = 0; // Default to CamelCase
     if (contextAttribute is not null) {
-      foreach (var namedArg in contextAttribute.NamedArguments) {
-        if (namedArg.Key == "KeyNamingStrategy" && namedArg.Value.Value is int strategyValue) {
+      foreach (var namedArg in contextAttribute.NamedArguments.Where(na => na.Key == "KeyNamingStrategy")) {
+        if (namedArg.Value.Value is int strategyValue) {
           namingStrategy = strategyValue;
         }
       }
