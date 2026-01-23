@@ -11,7 +11,7 @@ public class TernaryExpressionTests {
     var tmpl = env.TemplateFromString("{{ 'yes' if x else 'no' }}");
 
     // Act
-    var result = tmpl.Render(new { x = true });
+    var result = tmpl.Render(new Dictionary<string, object?> { ["x"] = true });
 
     // Assert
     result.Should().Be("yes");
@@ -24,7 +24,7 @@ public class TernaryExpressionTests {
     var tmpl = env.TemplateFromString("{{ 'yes' if x else 'no' }}");
 
     // Act
-    var result = tmpl.Render(new { x = false });
+    var result = tmpl.Render(new Dictionary<string, object?> { ["x"] = false });
 
     // Assert
     result.Should().Be("no");

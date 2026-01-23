@@ -2,3 +2,7 @@
 **/bin
 **/obj
 **/.build
+**/output
+
+# AI
+.claude

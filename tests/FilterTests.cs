@@ -51,7 +51,7 @@ public class FilterTests {
     var tmpl = env.TemplateFromString("{{ x|default('fallback') }}");
 
     // Act
-    var result = tmpl.Render(new { x = "value" });
+    var result = tmpl.Render(new Dictionary<string, object?> { ["x"] = "value" });
 
     // Assert
     result.Should().Be("value");

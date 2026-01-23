@@ -10,8 +10,23 @@
     <PackageProjectUrl>https://github.com/Fallenwood/minijinja-csharp</PackageProjectUrl>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
   </PropertyGroup>
-  
+
+  <ItemGroup>
+      <ProjectReference Include="..\minijinja.generator\MiniJinja.SourceGenerator.csproj"
+        PrivateAssets="None"
+        Pack="true"
+        ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\minijinja.generator\bin\$(Configuration)\netstandard2.0\MiniJinja.SourceGenerator.dll"
+      Pack="true"
+      PackagePath="analyzers/dotnet/cs"
+      Visible="false" />
+  </ItemGroup>
+
   <ItemGroup>
     <None Include="..\README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
+
 </Project>

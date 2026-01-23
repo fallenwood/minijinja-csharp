@@ -1,0 +1,3 @@
+<Project>
+  <!-- Override parent Directory.Build.props for the source generator -->
+</Project>

@@ -12,7 +12,7 @@ public class TojsonFilterTests {
     var tmpl = env.TemplateFromString("{{ value|tojson }}");
 
     // Act
-    var result = tmpl.Render(new { value });
+    var result = tmpl.Render(new Dictionary<string, object?> { ["value"] = value });
 
     // Assert
     result.Should().Be(expected);
@@ -25,7 +25,7 @@ public class TojsonFilterTests {
     var tmpl = env.TemplateFromString("{{ value|tojson }}");
 
     // Act
-    var result = tmpl.Render(new { value = 42 });
+    var result = tmpl.Render(new Dictionary<string, object?> { ["value"] = 42 });
 
     // Assert
     result.Should().Be("42");
@@ -38,7 +38,7 @@ public class TojsonFilterTests {
     var tmpl = env.TemplateFromString("{{ value|tojson }}");
 
     // Act
-    var result = tmpl.Render(new { value = new[] { 1, 2, 3 } });
+    var result = tmpl.Render(new Dictionary<string, object?> { ["value"] = new[] { 1, 2, 3 } });
 
     // Assert
     result.Should().Be("[1,2,3]");

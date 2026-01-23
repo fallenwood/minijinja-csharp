@@ -2,9 +2,78 @@ namespace MiniJinja;
 
 using System.Collections;
 using System.Globalization;
-using System.Reflection;
 using System.Text;
-using System.Text.Json;
+
+/// <summary>
+/// Interface for objects that can be serialized to template values without reflection.
+/// Implement this interface to make your types compatible with trimming and native AOT.
+/// </summary>
+public interface ITemplateSerializable {
+  /// <summary>
+  /// Converts this object to a dictionary of template values.
+  /// </summary>
+  Dictionary<string, Value> ToTemplateValues();
+}
+
+/// <summary>
+/// Specifies how property names are converted to template keys.
+/// </summary>
+public enum KeyNamingStrategy {
+  /// <summary>
+  /// Convert PascalCase to camelCase (default).
+  /// Example: FirstName -> firstName
+  /// </summary>
+  CamelCase,
+
+  /// <summary>
+  /// Convert PascalCase to snake_case.
+  /// Example: FirstName -> first_name
+  /// </summary>
+  SnakeCase,
+
+  /// <summary>
+  /// Convert PascalCase to kebab-case.
+  /// Example: FirstName -> first-name
+  /// </summary>
+  KebabCase,
+
+  /// <summary>
+  /// Keep the original property name as-is.
+  /// Example: FirstName -> FirstName
+  /// </summary>
+  None
+}
+
+/// <summary>
+/// Marks a type to have its ITemplateSerializable.ToTemplateValues() method generated automatically.
+/// The type must be declared as partial for the source generator to work.
+/// </summary>
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, Inherited = false, AllowMultiple = false)]
+public sealed class MiniJinjaContextAttribute : Attribute {
+  /// <summary>
+  /// Gets or sets the naming strategy for converting property names to template keys.
+  /// Default is CamelCase.
+  /// </summary>
+  public KeyNamingStrategy KeyNamingStrategy { get; set; } = KeyNamingStrategy.CamelCase;
+}
+
+/// <summary>
+/// Marks a property to be included in template serialization with optional customization.
+/// </summary>
+[AttributeUsage(AttributeTargets.Property, Inherited = false, AllowMultiple = false)]
+public sealed class MiniJinjaPropertyAttribute : Attribute {
+  /// <summary>
+  /// Gets or sets the custom name for this property in templates.
+  /// If not set, the naming strategy from MiniJinjaContextAttribute is used.
+  /// </summary>
+  public string? Name { get; set; }
+
+  /// <summary>
+  /// Gets or sets whether to ignore this property during serialization.
+  /// Default is false.
+  /// </summary>
+  public bool Ignore { get; set; }
+}
 
 /// <summary>
 /// The kind of a Value.
@@ -308,23 +377,119 @@ public readonly struct Value : IEquatable<Value> {
   }
 
   public string ToJson(bool pretty) {
-    var options = new JsonSerializerOptions {
-      WriteIndented = pretty
-    };
-    return JsonSerializer.Serialize(ToJsonObject(), options);
+    var sb = new StringBuilder();
+    WriteJson(sb, pretty, 0);
+    return sb.ToString();
   }
 
-  private object? ToJsonObject() {
-    return _kind switch {
-      ValueKind.Undefined => null,
-      ValueKind.None => null,
-      ValueKind.Bool => (bool)_data!,
-      ValueKind.Number => _data is long l ? l : (double)_data!,
-      ValueKind.String => (string)_data!,
-      ValueKind.Seq => ((List<Value>)_data!).Select(v => v.ToJsonObject()).ToList(),
-      ValueKind.Map => ((Dictionary<string, Value>)_data!).ToDictionary(kv => kv.Key, kv => kv.Value.ToJsonObject()),
-      _ => ToString()
-    };
+  private void WriteJson(StringBuilder sb, bool pretty, int indent) {
+    switch (_kind) {
+      case ValueKind.Undefined:
+      case ValueKind.None:
+        sb.Append("null");
+        break;
+      case ValueKind.Bool:
+        sb.Append((bool)_data! ? "true" : "false");
+        break;
+      case ValueKind.Number:
+        if (_data is long l) {
+          sb.Append(l.ToString(CultureInfo.InvariantCulture));
+        } else if (_data is double d) {
+          if (double.IsInfinity(d) || double.IsNaN(d)) {
+            sb.Append("null");
+          } else {
+            sb.Append(d.ToString("G", CultureInfo.InvariantCulture));
+          }
+        }
+        break;
+      case ValueKind.String:
+        sb.Append('"');
+        foreach (var c in (string)_data!) {
+          switch (c) {
+            case '"': sb.Append("\\\""); break;
+            case '\\': sb.Append("\\\\"); break;
+            case '\b': sb.Append("\\b"); break;
+            case '\f': sb.Append("\\f"); break;
+            case '\n': sb.Append("\\n"); break;
+            case '\r': sb.Append("\\r"); break;
+            case '\t': sb.Append("\\t"); break;
+            default:
+              if (c < 32) {
+                sb.Append($"\\u{(int)c:x4}");
+              } else {
+                sb.Append(c);
+              }
+              break;
+          }
+        }
+        sb.Append('"');
+        break;
+      case ValueKind.Seq:
+        sb.Append('[');
+        var list = (List<Value>)_data!;
+        for (int i = 0; i < list.Count; i++) {
+          if (i > 0) sb.Append(',');
+          if (pretty) {
+            sb.Append('\n');
+            sb.Append(' ', (indent + 1) * 2);
+          }
+          list[i].WriteJson(sb, pretty, indent + 1);
+        }
+        if (pretty && list.Count > 0) {
+          sb.Append('\n');
+          sb.Append(' ', indent * 2);
+        }
+        sb.Append(']');
+        break;
+      case ValueKind.Map:
+        sb.Append('{');
+        var dict = (Dictionary<string, Value>)_data!;
+        var first = true;
+        foreach (var kv in dict.OrderBy(kv => kv.Key)) {
+          if (!first) sb.Append(',');
+          first = false;
+          if (pretty) {
+            sb.Append('\n');
+            sb.Append(' ', (indent + 1) * 2);
+          }
+          // Escape the key to ensure valid JSON - keys may contain quotes, backslashes,
+          // control characters, etc. that must be escaped just like string values
+          sb.Append('"');
+          foreach (var c in kv.Key) {
+            switch (c) {
+              case '"': sb.Append("\\\""); break;
+              case '\\': sb.Append("\\\\"); break;
+              case '\b': sb.Append("\\b"); break;
+              case '\f': sb.Append("\\f"); break;
+              case '\n': sb.Append("\\n"); break;
+              case '\r': sb.Append("\\r"); break;
+              case '\t': sb.Append("\\t"); break;
+              default:
+                if (c < 32) {
+                  sb.Append($"\\u{(int)c:x4}");
+                } else {
+                  sb.Append(c);
+                }
+                break;
+            }
+          }
+          sb.Append('"');
+          sb.Append(':');
+          if (pretty) sb.Append(' ');
+          kv.Value.WriteJson(sb, pretty, indent + 1);
+        }
+        if (pretty && dict.Count > 0) {
+          sb.Append('\n');
+          sb.Append(' ', indent * 2);
+        }
+        sb.Append('}');
+        break;
+      default:
+        sb.Append('"');
+        sb.Append(ToString());
+        sb.Append('"');
+        break;
+    }
   }
 
   public IEnumerable<Value> Iterate() {
@@ -444,26 +609,13 @@ public readonly struct Value : IEquatable<Value> {
       string s => FromString(s),
       ICallable c => FromCallable(c),
       IObject o => FromObject(o),
+      ITemplateSerializable serializable => FromDict(serializable.ToTemplateValues()),
       IDictionary<string, object?> dict => FromDict(dict.ToDictionary(kv => kv.Key, kv => FromAny(kv.Value))),
       IDictionary<string, Value> vdict => FromDict(new Dictionary<string, Value>(vdict)),
       IEnumerable<Value> vals => FromList(vals.ToList()),
       IEnumerable enumerable when value is not string => FromList(enumerable.Cast<object?>().Select(FromAny).ToList()),
-      _ => FromReflection(value)
+      _ => throw new TemplateError($"Cannot convert {value.GetType().Name} to Value. Implement ITemplateSerializable, use a dictionary, or convert to a supported primitive type.")
     };
-  }
-
-  private static Value FromReflection(object obj) {
-    var type = obj.GetType();
-    var dict = new Dictionary<string, Value>();
-    foreach (var prop in type.GetProperties(BindingFlags.Public | BindingFlags.Instance)) {
-      try {
-        var propValue = prop.GetValue(obj);
-        dict[prop.Name] = FromAny(propValue);
-      } catch {
-        // Skip properties that can't be read
-      }
-    }
-    return FromDict(dict);
   }
 }
 

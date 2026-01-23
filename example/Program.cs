@@ -17,14 +17,29 @@ Section("Quick Start"); {
   using var env = new MJEnvironment();
   env.AddTemplate("hello", "Hello {{ name }}!");
   var tmpl = env.GetTemplate("hello");
-  var result = tmpl.Render(new { name = "World" });
+  // Using dictionary for context (AOT-compatible)
+  var result = tmpl.Render(new Dictionary<string, object?> { ["name"] = "World" });
   Console.WriteLine(result);
 }
 
 Section("Template From String"); {
   using var env = new MJEnvironment();
   var tmpl = env.TemplateFromString("Hello {{ name }}!");
-  Console.WriteLine(tmpl.Render(new { name = "World" }));
+  Console.WriteLine(tmpl.Render(new Dictionary<string, object?> { ["name"] = "World" }));
+}
+
+Section("Custom Type with ITemplateSerializable"); {
+  using var env = new MJEnvironment();
+  var tmpl = env.TemplateFromString("{{ name }} is {{ age }} years old");
+  var person = new Person { Name = "Alice", Age = 30 };
+  Console.WriteLine(tmpl.Render(person));
+}
+
+Section("Custom Type with Source Generator"); {
+  using var env = new MJEnvironment();
+  var tmpl = env.TemplateFromString("{{ name }} is {{ age }} years old and lives in {{ city }}");
+  var employee = new Employee { Name = "Bob", Age = 25, City = "Seattle" };
+  Console.WriteLine(tmpl.Render(employee));
 }
 
 Section("Template Syntax (Variables, Blocks, Filters)"); {
@@ -46,7 +61,10 @@ Section("Template Syntax (Variables, Blocks, Filters)"); {
   );
 
   var tmpl = env.GetTemplate("syntax");
-  var output = tmpl.Render(new { name = "world", items = new[] { "a", "b", "c" } });
+  var output = tmpl.Render(new Dictionary<string, object?> {
+    ["name"] = "world",
+    ["items"] = new[] { "a", "b", "c" }
+  });
   Console.WriteLine(output.Trim());
 }
 
@@ -62,7 +80,7 @@ Section("Custom Filter (reverse)"); {
 
   env.AddTemplate("reverse-demo", "{{ value|reverse }}");
   var tmpl = env.GetTemplate("reverse-demo");
-  Console.WriteLine(tmpl.Render(new { value = "hello" }));
+  Console.WriteLine(tmpl.Render(new Dictionary<string, object?> { ["value"] = "hello" }));
 }
 
 Section("Custom Function (repeat)"); {
@@ -77,7 +95,7 @@ Section("Custom Function (repeat)"); {
 
   env.AddTemplate("repeat-demo", "{{ repeat(word, 3) }}");
   var tmpl = env.GetTemplate("repeat-demo");
-  Console.WriteLine(tmpl.Render(new { word = "ha" }));
+  Console.WriteLine(tmpl.Render(new Dictionary<string, object?> { ["word"] = "ha" }));
 }
 
 Section("Built-in Function (range)"); {
@@ -107,6 +125,43 @@ Section("Auto-Escaping and Safe Strings"); {
   Console.WriteLine(tmpl.Render(ctx));
 }
 
+Section("Complex Object with Nested Data"); {
+  using var env = new MJEnvironment();
+  var tmpl = env.TemplateFromString("""
+    Company: {{ name }}
+    Departments:
+    {% for dept in departments %}
+      - {{ dept.name }} ({{ dept.employees|length }} employees)
+        {% for emp in dept.employees %}
+        * {{ emp.name }}, {{ emp.role }}{% if emp.isManager %} (Manager){% endif %}
+        {% endfor %}
+    {% endfor %}
+    """);
+
+  var company = new Company {
+    Name = "Tech Corp",
+    Departments = new[] {
+      new Department {
+        Name = "Engineering",
+        Employees = new[] {
+          new EmployeeInfo { Name = "Alice", Role = "Senior Engineer", IsManager = true },
+          new EmployeeInfo { Name = "Bob", Role = "Engineer", IsManager = false },
+          new EmployeeInfo { Name = "Carol", Role = "Junior Engineer", IsManager = false }
+        }
+      },
+      new Department {
+        Name = "Sales",
+        Employees = new[] {
+          new EmployeeInfo { Name = "Dave", Role = "Sales Lead", IsManager = true },
+          new EmployeeInfo { Name = "Eve", Role = "Account Manager", IsManager = false }
+        }
+      }
+    }
+  };
+
+  Console.WriteLine(tmpl.Render(company).Trim());
+}
+
 Section("Error Handling"); {
   using var env = new MJEnvironment();
   try {
@@ -122,4 +177,143 @@ Section("Error Handling"); {
   } catch (TemplateError e) {
     Console.WriteLine($"TemplateError: {e.Message}");
   }
+}
+
+Section("Property Attributes and Naming Strategies"); {
+  using var env = new MJEnvironment();
+
+  // Example 1: Custom property names
+  var tmpl1 = env.TemplateFromString("User: {{ user_id }} - {{ display_name }}");
+  var user = new UserWithCustomNames { Id = 123, Name = "Alice" };
+  Console.WriteLine(tmpl1.Render(user));
+
+  // Example 2: Snake case naming strategy
+  var tmpl2 = env.TemplateFromString("{{ first_name }} {{ last_name }} ({{ email_address }})");
+  var contact = new ContactWithSnakeCase {
+    FirstName = "Bob",
+    LastName = "Smith",
+    EmailAddress = "bob@example.com"
+  };
+  Console.WriteLine(tmpl2.Render(contact));
+
+  // Example 3: Ignored properties
+  var tmpl3 = env.TemplateFromString("Username: {{ username }}, Password: {{ password }}");
+  var credentials = new CredentialsWithIgnore {
+    Username = "admin",
+    Password = "secret123"
+  };
+  Console.WriteLine(tmpl3.Render(credentials));
+}
+
+Section("JSON Serialization with Special Characters in Keys"); {
+  using var env = new MJEnvironment();
+
+  // Create a dictionary with keys containing special characters
+  var data = new Dictionary<string, Value> {
+    ["normal_key"] = Value.FromString("value1"),
+    ["key\"with\"quotes"] = Value.FromString("value2"),
+    ["key\\with\\backslashes"] = Value.FromString("value3"),
+    ["key\nwith\nnewlines"] = Value.FromString("value4"),
+    ["key\twith\ttabs"] = Value.FromString("value5"),
+    ["key\u0001with\u001fcontrol"] = Value.FromString("value6")
+  };
+
+  var value = Value.FromDict(data);
+  var json = value.ToJson(false);
+  Console.WriteLine("Compact JSON:");
+  Console.WriteLine(json);
+  Console.WriteLine();
+  Console.WriteLine("Pretty JSON:");
+  Console.WriteLine(value.ToJson(true));
+
+  // Verify the JSON is valid by checking it can be parsed
+  try {
+    System.Text.Json.JsonDocument.Parse(json);
+    Console.WriteLine("✓ JSON is valid");
+  } catch {
+    Console.WriteLine("✗ JSON is invalid!");
+  }
+}
+
+// Removed collision test to allow build to succeed.
+// To test collision detection, create a class like:
+// [MiniJinjaContext]
+// partial class TestCollision {
+//   public int UserId { get; set; }
+//   public int userId { get; set; }
+// }
+// This will generate warning MINIJINJA001
+
+// To test missing partial modifier detection:
+// [MiniJinjaContext]
+// class NonPartialTest {  // Missing 'partial' keyword
+//   public string Name { get; set; } = "";
+// }
+// This will generate error MINIJINJA002
+
+// Example of a custom type that implements ITemplateSerializable for AOT compatibility
+class Person : ITemplateSerializable {
+  public string Name { get; set; } = "";
+  public int Age { get; set; }
+
+  public Dictionary<string, Value> ToTemplateValues() {
+    return new Dictionary<string, Value> {
+      ["name"] = Value.FromString(Name),
+      ["age"] = Value.FromInt(Age)
+    };
+  }
+}
+
+// Example of using the source generator - just mark the class with [MiniJinjaContext]
+// and make it partial. The ToTemplateValues method will be generated automatically.
+[MiniJinjaContext]
+partial class Employee {
+  public string Name { get; set; } = "";
+  public int Age { get; set; }
+  public string City { get; set; } = "";
+}
+
+// Complex nested object example with collections
+[MiniJinjaContext]
+partial class Company {
+  public string Name { get; set; } = "";
+  public Department[] Departments { get; set; } = Array.Empty<Department>();
+}
+
+[MiniJinjaContext]
+partial class Department {
+  public string Name { get; set; } = "";
+  public EmployeeInfo[] Employees { get; set; } = Array.Empty<EmployeeInfo>();
+}
+
+[MiniJinjaContext]
+partial class EmployeeInfo {
+  public string Name { get; set; } = "";
+  public string Role { get; set; } = "";
+  public bool IsManager { get; set; }
+}
+
+// Examples for property attributes and naming strategies
+[MiniJinjaContext]
+partial class UserWithCustomNames {
+  [MiniJinjaProperty(Name = "user_id")]
+  public int Id { get; set; }
+
+  [MiniJinjaProperty(Name = "display_name")]
+  public string Name { get; set; } = "";
+}
+
+[MiniJinjaContext(KeyNamingStrategy = KeyNamingStrategy.SnakeCase)]
+partial class ContactWithSnakeCase {
+  public string FirstName { get; set; } = "";
+  public string LastName { get; set; } = "";
+  public string EmailAddress { get; set; } = "";
+}
+
+[MiniJinjaContext]
+partial class CredentialsWithIgnore {
+  public string Username { get; set; } = "";
+
+  [MiniJinjaProperty(Ignore = true)]
+  public string Password { get; set; } = "";
 }

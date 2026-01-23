@@ -11,8 +11,8 @@ public class AttributeAccessTests {
     var tmpl = env.TemplateFromString("{{ user.name }} is {{ user.age }}");
 
     // Act
-    var result = tmpl.Render(new {
-      user = new { name = "Alice", age = 30 }
+    var result = tmpl.Render(new Dictionary<string, object?> {
+      ["user"] = new Dictionary<string, object?> { ["name"] = "Alice", ["age"] = 30 }
     });
 
     // Assert
@@ -26,7 +26,7 @@ public class AttributeAccessTests {
     var tmpl = env.TemplateFromString("{{ items[0] }} {{ items[1] }} {{ items[-1] }}");
 
     // Act
-    var result = tmpl.Render(new { items = new[] { "a", "b", "c" } });
+    var result = tmpl.Render(new Dictionary<string, object?> { ["items"] = new[] { "a", "b", "c" } });
 
     // Assert
     result.Should().Be("a b c");
