@@ -179,6 +179,32 @@ Section("Error Handling"); {
   }
 }
 
+Section("Property Attributes and Naming Strategies"); {
+  using var env = new MJEnvironment();
+
+  // Example 1: Custom property names
+  var tmpl1 = env.TemplateFromString("User: {{ user_id }} - {{ display_name }}");
+  var user = new UserWithCustomNames { Id = 123, Name = "Alice" };
+  Console.WriteLine(tmpl1.Render(user));
+
+  // Example 2: Snake case naming strategy
+  var tmpl2 = env.TemplateFromString("{{ first_name }} {{ last_name }} ({{ email_address }})");
+  var contact = new ContactWithSnakeCase {
+    FirstName = "Bob",
+    LastName = "Smith",
+    EmailAddress = "bob@example.com"
+  };
+  Console.WriteLine(tmpl2.Render(contact));
+
+  // Example 3: Ignored properties
+  var tmpl3 = env.TemplateFromString("Username: {{ username }}, Password: {{ password }}");
+  var credentials = new CredentialsWithIgnore {
+    Username = "admin",
+    Password = "secret123"
+  };
+  Console.WriteLine(tmpl3.Render(credentials));
+}
+
 // Example of a custom type that implements ITemplateSerializable for AOT compatibility
 class Person : ITemplateSerializable {
   public string Name { get; set; } = "";
@@ -219,4 +245,29 @@ partial class EmployeeInfo {
   public string Name { get; set; } = "";
   public string Role { get; set; } = "";
   public bool IsManager { get; set; }
+}
+
+// Examples for property attributes and naming strategies
+[MiniJinjaContext]
+partial class UserWithCustomNames {
+  [MiniJinjaProperty(Name = "user_id")]
+  public int Id { get; set; }
+
+  [MiniJinjaProperty(Name = "display_name")]
+  public string Name { get; set; } = "";
+}
+
+[MiniJinjaContext(KeyNamingStrategy = KeyNamingStrategy.SnakeCase)]
+partial class ContactWithSnakeCase {
+  public string FirstName { get; set; } = "";
+  public string LastName { get; set; } = "";
+  public string EmailAddress { get; set; } = "";
+}
+
+[MiniJinjaContext]
+partial class CredentialsWithIgnore {
+  public string Username { get; set; } = "";
+
+  [MiniJinjaProperty(Ignore = true)]
+  public string Password { get; set; } = "";
 }
