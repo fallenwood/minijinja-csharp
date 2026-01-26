@@ -12,7 +12,7 @@ public class ImportTests {
     var tmpl = env.TemplateFromString(@"{% import ""forms.html"" as forms %}{{ forms.input(""test"") }}");
 
     // Act
-    var result = tmpl.Render(null);
+    var result = tmpl.Render();
 
     // Assert
     result.Should().Be(@"<input name=""test"">");
@@ -26,7 +26,7 @@ public class ImportTests {
     var tmpl = env.TemplateFromString(@"{% from ""forms.html"" import input, button %}{{ input(""test"") }}{{ button(""Click"") }}");
 
     // Act
-    var result = tmpl.Render(null);
+    var result = tmpl.Render();
 
     // Assert
     result.Should().Be(@"<input name=""test""><button>Click</button>");
@@ -40,7 +40,7 @@ public class ImportTests {
     var tmpl = env.TemplateFromString(@"{% from ""forms.html"" import input as inp %}{{ inp(""test"") }}");
 
     // Act
-    var result = tmpl.Render(null);
+    var result = tmpl.Render();
 
     // Assert
     result.Should().Be(@"<input name=""test"">");

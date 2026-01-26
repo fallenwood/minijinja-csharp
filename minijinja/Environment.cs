@@ -1,4 +1,6 @@
-﻿namespace MiniJinja;
+namespace MiniJinja;
+
+using System;
 
 /// <summary>
 /// The MiniJinja template environment.
@@ -223,14 +225,12 @@ public class Template {
   /// </summary>
   /// <param name="context">The context object or dictionary.</param>
   /// <returns>The rendered string.</returns>
-  public string Render(object? context = null) {
+  public string Render(IDictionary<string, Value>? context) {
     var state = new State(_env);
     state.CurrentTemplateName = _name;
 
-    // Set context variables
     if (context != null) {
-      var dict = ConvertContext(context);
-      foreach (var (key, value) in dict) {
+      foreach (var (key, value) in context) {
         state.Set(key, value);
       }
     }
@@ -239,24 +239,36 @@ public class Template {
     return evaluator.Evaluate(_ast);
   }
 
-  private static Dictionary<string, Value> ConvertContext(object context) {
-    var result = new Dictionary<string, Value>();
+  /// <summary>
+  /// Renders the template with no context.
+  /// </summary>
+  /// <returns>The rendered string.</returns>
+  public string Render() {
+    return this.Render((IDictionary<string, Value>?)null);
+  }
 
-    if (context is IDictionary<string, object?> dict) {
-      foreach (var (key, value) in dict) {
-        result[key] = Value.FromAny(value);
-      }
-      return result;
+  /// <summary>
+  /// Renders the template with the given context.
+  /// </summary>
+  /// <param name="context">The context object or dictionary.</param>
+  /// <returns>The rendered string.</returns>
+  public string Render(IDictionary<string, object?> context) {
+    var dict = new Dictionary<string, Value>(context.Count);
+    foreach (var (key, value) in context) {
+      dict[key] = Value.FromAny(value);
     }
 
-    if (context is IDictionary<string, Value> valueDict) {
-      return new Dictionary<string, Value>(valueDict);
-    }
+    return this.Render(dict);
+  }
 
-    if (context is ITemplateSerializable serializable) {
-      return serializable.ToTemplateValues();
-    }
+  /// <summary>
+  /// Renders the template with the given context.
+  /// </summary>
+  /// <param name="context">The context object or dictionary.</param>
+  /// <returns>The rendered string.</returns>
+  public string Render(ITemplateSerializable context) {
+    var dict = context.ToTemplateValues();
 
-    throw new TemplateError($"Context type {context.GetType().Name} must implement ITemplateSerializable, be a dictionary, or be a supported primitive type. For anonymous types, convert to a dictionary first.");
+    return this.Render(dict);
   }
 }
