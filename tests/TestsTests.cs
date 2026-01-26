@@ -41,7 +41,7 @@ public class TestsTests {
     var tmpl = env.TemplateFromString(template);
 
     // Act
-    var result = tmpl.Render(null);
+    var result = tmpl.Render();
 
     // Assert
     result.Should().Be(expected);

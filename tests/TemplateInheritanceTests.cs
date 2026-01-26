@@ -12,7 +12,7 @@ public class TemplateInheritanceTests {
     var tmpl = env.TemplateFromString(@"{% extends ""base.html"" %}{% block content %}Hello World{% endblock %}");
 
     // Act
-    var result = tmpl.Render(null);
+    var result = tmpl.Render();
 
     // Assert
     result.Should().Be("<html>Hello World</html>");
@@ -26,7 +26,7 @@ public class TemplateInheritanceTests {
     var tmpl = env.TemplateFromString(@"{% extends ""base.html"" %}{% block content %}{{ super() }}:CHILD{% endblock %}");
 
     // Act
-    var result = tmpl.Render(null);
+    var result = tmpl.Render();
 
     // Assert
     result.Should().Be("BASE:CHILD");
@@ -41,7 +41,7 @@ public class TemplateInheritanceTests {
     var tmpl = env.TemplateFromString(@"{% extends ""middle.html"" %}{% block content %}CHILD{% endblock %}");
 
     // Act
-    var result = tmpl.Render(null);
+    var result = tmpl.Render();
 
     // Assert
     result.Should().Be("[CHILD]");

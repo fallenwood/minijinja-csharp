@@ -11,7 +11,7 @@ public class CallableObjectTests {
     var tmpl = env.TemplateFromString(@"{% set c = cycler(""odd"", ""even"") %}{{ c.next() }} {{ c.next() }} {{ c.next() }}");
 
     // Act
-    var result = tmpl.Render(null);
+    var result = tmpl.Render();
 
     // Assert
     result.Should().Be("odd even odd");

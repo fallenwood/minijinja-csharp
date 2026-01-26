@@ -11,7 +11,7 @@ public class DictLiteralTests {
     var tmpl = env.TemplateFromString("{{ {'a': 1, 'b': 2}.a }}");
 
     // Act
-    var result = tmpl.Render(null);
+    var result = tmpl.Render();
 
     // Assert
     result.Should().Be("1");

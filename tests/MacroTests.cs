@@ -11,7 +11,7 @@ public class MacroTests {
     var tmpl = env.TemplateFromString(@"{% macro greet(name) %}Hello {{ name }}!{% endmacro %}{{ greet(""World"") }}");
 
     // Act
-    var result = tmpl.Render(null);
+    var result = tmpl.Render();
 
     // Assert
     result.Should().Be("Hello World!");
@@ -24,7 +24,7 @@ public class MacroTests {
     var tmpl = env.TemplateFromString(@"{% macro greet(name=""Guest"") %}Hello {{ name }}!{% endmacro %}{{ greet() }}");
 
     // Act
-    var result = tmpl.Render(null);
+    var result = tmpl.Render();
 
     // Assert
     result.Should().Be("Hello Guest!");

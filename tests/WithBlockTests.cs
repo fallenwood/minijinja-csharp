@@ -11,7 +11,7 @@ public class WithBlockTests {
     var tmpl = env.TemplateFromString("{% with x = 5, y = 10 %}{{ x + y }}{% endwith %}");
 
     // Act
-    var result = tmpl.Render(null);
+    var result = tmpl.Render();
 
     // Assert
     result.Should().Be("15");

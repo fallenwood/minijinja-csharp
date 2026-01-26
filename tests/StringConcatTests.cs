@@ -11,7 +11,7 @@ public class StringConcatTests {
     var tmpl = env.TemplateFromString("{{ 'hello' ~ ' ' ~ 'world' }}");
 
     // Act
-    var result = tmpl.Render(null);
+    var result = tmpl.Render();
 
     // Assert
     result.Should().Be("hello world");
