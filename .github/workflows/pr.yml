@@ -39,7 +39,7 @@ jobs:
 
       - name: Generate Coverage Report
         run: |
-          reportgenerator -reports:./coverage/**/coverage.cobertura.xml -targetdir:./coverage/report -reporttypes:Html;MarkdownSummaryGithub
+          reportgenerator -reports:./coverage/**/coverage.cobertura.xml -targetdir:./coverage/report "-reporttypes:Html;MarkdownSummaryGithub"
           Get-Content ./coverage/report/SummaryGithub.md | Add-Content $env:GITHUB_STEP_SUMMARY
 
       - uses: actions/upload-artifact@v4
