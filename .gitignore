@@ -3,6 +3,7 @@
 **/obj
 **/.build
 **/output
+**/coverage
 
 # AI
 .claude
