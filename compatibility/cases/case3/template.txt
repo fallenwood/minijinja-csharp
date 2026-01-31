@@ -1,0 +1,5 @@
+{% if show %}
+Hello, {{ name }}!
+{% else %}
+Goodbye, {{ name }}!
+{% endif %}
