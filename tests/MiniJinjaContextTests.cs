@@ -209,9 +209,95 @@ Teams:
     result.Should().Contain("Sales");
     result.Should().Contain("Charlie");
   }
-}
 
-// Test models with MiniJinjaContext attribute
+  [Fact]
+  public void ObjectWithFields_ShouldRenderCorrectly() {
+    // Arrange
+    var env = new Environment();
+    var tmpl = env.TemplateFromString("{{ name }} is {{ age }} years old");
+    var person = new PersonWithFields { Name = "Eve", Age = 25 };
+
+    // Act
+    var result = tmpl.Render(person);
+
+    // Assert
+    result.Should().Be("Eve is 25 years old");
+  }
+
+  [Fact]
+  public void ObjectWithNullableFields_NullValues_ShouldRenderAsEmpty() {
+    // Arrange
+    var env = new Environment();
+    var tmpl = env.TemplateFromString("Name: {{ name }}, Age: {{ age }}, Score: {{ score }}, Active: {{ isActive }}");
+    var person = new PersonWithNullableFields {
+      Name = null,
+      Age = null,
+      Score = null,
+      IsActive = null
+    };
+
+    // Act
+    var result = tmpl.Render(person);
+
+    // Assert
+    result.Should().Be("Name: , Age: , Score: , Active: ");
+  }
+
+  [Fact]
+  public void ObjectWithNullableFields_WithValues_ShouldRenderCorrectly() {
+    // Arrange
+    var env = new Environment();
+    var tmpl = env.TemplateFromString("Name: {{ name }}, Age: {{ age }}, Score: {{ score }}, Active: {{ isActive }}");
+    var person = new PersonWithNullableFields {
+      Name = "Frank",
+      Age = 30,
+      Score = 95.5,
+      IsActive = true
+    };
+
+    // Act
+    var result = tmpl.Render(person);
+
+    // Assert
+    result.Should().Be("Name: Frank, Age: 30, Score: 95.5, Active: true");
+  }
+
+  [Fact]
+  public void MixedMembersObject_ShouldRenderCorrectly() {
+    // Arrange
+    var env = new Environment();
+    var tmpl = env.TemplateFromString("{{ propertyName }}: {{ fieldValue }}, Nullable: {{ nullableField }}");
+    var obj = new MixedMembersObject {
+      PropertyName = "Test",
+      FieldValue = 42,
+      NullableField = "present"
+    };
+
+    // Act
+    var result = tmpl.Render(obj);
+
+    // Assert
+    result.Should().Be("Test: 42, Nullable: present");
+  }
+
+  [Fact]
+  public void MixedMembersObject_WithNullField_ShouldRenderCorrectly() {
+    // Arrange
+    var env = new Environment();
+    var tmpl = env.TemplateFromString("{{ propertyName }}: {{ fieldValue }}, Nullable: {{ nullableField }}");
+    var obj = new MixedMembersObject {
+      PropertyName = "Test",
+      FieldValue = 42,
+      NullableField = null
+    };
+
+    // Act
+    var result = tmpl.Render(obj);
+
+    // Assert
+    result.Should().Be("Test: 42, Nullable: ");
+  }
+}
 
 [MiniJinjaContext]
 partial class SimplePerson {
@@ -309,4 +395,27 @@ partial class Team {
 partial class Organization {
   public string Name { get; set; } = "";
   public Team[] Teams { get; set; } = Array.Empty<Team>();
+}
+
+// Test models with fields
+
+[MiniJinjaContext]
+partial class PersonWithFields {
+  public string Name = "";
+  public int Age;
+}
+
+[MiniJinjaContext]
+partial class PersonWithNullableFields {
+  public string? Name;
+  public int? Age;
+  public double? Score;
+  public bool? IsActive;
+}
+
+[MiniJinjaContext]
+partial class MixedMembersObject {
+  public string PropertyName { get; set; } = "";
+  public int FieldValue;
+  public string? NullableField;
 }
