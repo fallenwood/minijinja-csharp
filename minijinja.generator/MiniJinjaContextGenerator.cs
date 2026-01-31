@@ -8,6 +8,21 @@ using System.Text;
 namespace MiniJinja.SourceGenerator;
 
 /// <summary>
+/// Represents a member (property or field) that can be serialized.
+/// </summary>
+internal readonly struct MemberInfo {
+  public string Name { get; }
+  public ITypeSymbol Type { get; }
+  public ISymbol Symbol { get; }
+
+  public MemberInfo(string name, ITypeSymbol type, ISymbol symbol) {
+    Name = name;
+    Type = type;
+    Symbol = symbol;
+  }
+}
+
+/// <summary>
 /// Source generator for MiniJinja context types.
 /// Automatically implements ITemplateSerializable for types marked with [MiniJinjaContext].
 ///
@@ -102,21 +117,33 @@ public class MiniJinjaContextGenerator : IIncrementalGenerator {
       .Where(p => p.DeclaredAccessibility == Accessibility.Public &&
                   p.GetMethod is not null &&
                   !p.IsStatic)
+      .Select(p => new MemberInfo(p.Name, p.Type, p))
       .ToList();
 
-    if (properties.Count == 0) {
+    // Get all public fields
+    var fields = typeSymbol.GetMembers()
+      .OfType<IFieldSymbol>()
+      .Where(f => f.DeclaredAccessibility == Accessibility.Public &&
+                  !f.IsStatic &&
+                  !f.IsConst)
+      .Select(f => new MemberInfo(f.Name, f.Type, f))
+      .ToList();
+
+    var members = properties.Concat(fields).ToList();
+
+    if (members.Count == 0) {
       return;
     }
 
-    // Check for property name collisions after applying naming strategy
-    var propertyKeyMap = new Dictionary<string, List<string>>();
+    // Check for member name collisions after applying naming strategy
+    var memberKeyMap = new Dictionary<string, List<string>>();
 
-    foreach (var property in properties) {
+    foreach (var member in members) {
       // Check for MiniJinjaProperty attribute
-      var propertyAttribute = property.GetAttributes()
+      var propertyAttribute = member.Symbol.GetAttributes()
         .FirstOrDefault(a => a.AttributeClass?.ToDisplayString() == "MiniJinja.MiniJinjaPropertyAttribute");
 
-      // Check if property should be ignored
+      // Check if member should be ignored
       var ignore = false;
       string? customName = null;
 
@@ -134,30 +161,30 @@ public class MiniJinjaContextGenerator : IIncrementalGenerator {
         continue;
       }
 
-      var propertyName = property.Name;
-      var keyName = customName ?? ConvertPropertyName(propertyName, namingStrategy);
+      var memberName = member.Name;
+      var keyName = customName ?? ConvertPropertyName(memberName, namingStrategy);
 
-      if (!propertyKeyMap.ContainsKey(keyName)) {
-        propertyKeyMap[keyName] = new List<string>();
+      if (!memberKeyMap.ContainsKey(keyName)) {
+        memberKeyMap[keyName] = new List<string>();
       }
-      propertyKeyMap[keyName].Add(propertyName);
+      memberKeyMap[keyName].Add(memberName);
     }
 
     // Report diagnostics for any collisions
-    foreach (var kvp in propertyKeyMap.Where(kvp => kvp.Value.Count > 1)) {
+    foreach (var kvp in memberKeyMap.Where(kvp => kvp.Value.Count > 1)) {
       var keyName = kvp.Key;
-      var propertyNames = kvp.Value;
+      var memberNames = kvp.Value;
 
       var descriptor = new DiagnosticDescriptor(
         id: "MINIJINJA001",
-        title: "Property name collision after applying naming strategy",
-        messageFormat: "Properties {0} all map to the same key '{1}' after applying the naming strategy. This will cause the last property to overwrite previous ones. Consider using [MiniJinjaProperty(Name = \"...\")] to provide unique names.",
+        title: "Member name collision after applying naming strategy",
+        messageFormat: "Members {0} all map to the same key '{1}' after applying the naming strategy. This will cause the last member to overwrite previous ones. Consider using [MiniJinjaProperty(Name = \"...\")] to provide unique names.",
         category: "MiniJinja.Generator",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
 
       var location = typeInfo.Syntax.GetLocation();
-      var diagnostic = Diagnostic.Create(descriptor, location, string.Join(", ", propertyNames.Select(p => $"'{p}'")), keyName);
+      var diagnostic = Diagnostic.Create(descriptor, location, string.Join(", ", memberNames.Select(p => $"'{p}'")), keyName);
       context.ReportDiagnostic(diagnostic);
     }
 
@@ -168,7 +195,7 @@ public class MiniJinjaContextGenerator : IIncrementalGenerator {
     var typeName = typeSymbol.Name;
     var typeKind = typeInfo.Syntax.Keyword.Text; // "class" or "struct"
 
-    var source = GenerateSource(namespaceName, typeName, typeKind, properties, namingStrategy);
+    var source = GenerateSource(namespaceName, typeName, typeKind, members, namingStrategy);
     context.AddSource($"{typeName}.g.cs", source);
   }
 
@@ -176,7 +203,7 @@ public class MiniJinjaContextGenerator : IIncrementalGenerator {
     string? namespaceName,
     string typeName,
     string typeKind,
-    List<IPropertySymbol> properties,
+    List<MemberInfo> members,
     int namingStrategy) {
 
     var sb = new StringBuilder();
@@ -193,12 +220,12 @@ public class MiniJinjaContextGenerator : IIncrementalGenerator {
     sb.AppendLine("  public System.Collections.Generic.Dictionary<string, MiniJinja.Value> ToTemplateValues() {");
     sb.AppendLine("    return new System.Collections.Generic.Dictionary<string, MiniJinja.Value> {");
 
-    foreach (var property in properties) {
+    foreach (var member in members) {
       // Check for MiniJinjaProperty attribute
-      var propertyAttribute = property.GetAttributes()
+      var propertyAttribute = member.Symbol.GetAttributes()
         .FirstOrDefault(a => a.AttributeClass?.ToDisplayString() == "MiniJinja.MiniJinjaPropertyAttribute");
 
-      // Check if property should be ignored
+      // Check if member should be ignored
       var ignore = false;
       string? customName = null;
 
@@ -216,16 +243,16 @@ public class MiniJinjaContextGenerator : IIncrementalGenerator {
         continue;
       }
 
-      var propertyName = property.Name;
-      var keyName = customName ?? ConvertPropertyName(propertyName, namingStrategy);
+      var memberName = member.Name;
+      var keyName = customName ?? ConvertPropertyName(memberName, namingStrategy);
 
       sb.Append($"      [\"{keyName}\"] = ");
 
-      // Determine the appropriate Value.From* method based on the property type
-      var typeInfo = property.Type;
+      // Determine the appropriate Value.From* method based on the member type
+      var typeInfo = member.Type;
       var conversionMethod = GetConversionMethod(typeInfo);
 
-      sb.AppendLine($"{conversionMethod}({propertyName}),");
+      sb.AppendLine($"{conversionMethod}({memberName}),");
     }
 
     sb.AppendLine("    };");
@@ -295,6 +322,17 @@ public class MiniJinjaContextGenerator : IIncrementalGenerator {
   }
 
   private static string GetConversionMethod(ITypeSymbol typeSymbol) {
+    // Check for nullable reference or value types - use FromAny which handles null correctly
+    if (typeSymbol.NullableAnnotation == NullableAnnotation.Annotated) {
+      return "MiniJinja.Value.FromAny";
+    }
+
+    // Check for Nullable<T> value types (int?, bool?, etc.)
+    if (typeSymbol is INamedTypeSymbol namedType &&
+        namedType.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T) {
+      return "MiniJinja.Value.FromAny";
+    }
+
     var typeName = typeSymbol.ToDisplayString();
 
     return typeName switch {
@@ -304,7 +342,6 @@ public class MiniJinjaContextGenerator : IIncrementalGenerator {
       "long" => "MiniJinja.Value.FromInt",
       "float" => "MiniJinja.Value.FromDouble",
       "double" => "MiniJinja.Value.FromDouble",
-      "string?" => "MiniJinja.Value.FromString",
       _ when typeSymbol.IsValueType => "MiniJinja.Value.FromAny",
       _ => "MiniJinja.Value.FromAny"
     };
