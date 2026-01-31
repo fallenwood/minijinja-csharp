@@ -18,5 +18,5 @@ public class Case9
 [MiniJinjaContext]
 partial class Case9Context
 {
-  public string? Value { get; set; }
+  public string Value { get; set; } = "";
 }
