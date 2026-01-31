@@ -4,4 +4,4 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-minijinja="2.15.1"
+minijinja = "2.15.1"
