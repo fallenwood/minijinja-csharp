@@ -1,0 +1,8 @@
+Hello, {{ name }}.
+
+Before content.
+
+{% block content %}
+{% endblock %}
+
+End content.
